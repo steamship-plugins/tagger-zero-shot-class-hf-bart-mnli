@@ -1,13 +1,21 @@
 {
   "type": "plugin",
-  "name": "",
-  "handle": "",
+  "name": "tagger-entity-hf-bert",
+  "handle": "tagger-entity-hf-bert",
   "version": "0.0.1",
   "description": "",
   "author": "",
   "entrypoint": "src.api.handler",
+  "public": true,
   "plugin": {
     "type": "tagger",
-    "path": "/tag"
+    "path": "/tag",
+    "transport": "jsonOverHttp",
+    "configTemplate": {
+      "hf_api_bearer_token": {
+        "type": "string",
+        "description": "Your bearer token from the Hugging Face API"
+      }
+    }
   }
 }
