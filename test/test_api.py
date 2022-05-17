@@ -9,7 +9,11 @@ __copyright__ = "Steamship"
 __license__ = "MIT"
 
 def _get_test_file() -> File:
-    return File(blocks=[Block(text='My name is Dave and I live near Baltimore')])
+    return File(blocks=[
+        Block(text='My name is Dave and I live near Baltimore'),
+        Block(text='My name is Ted and I live in Washington, DC'),
+        Block(text='My name is Enias and I live in Brussels'),
+    ])
 
 def test_parser():
     folder = os.path.dirname(os.path.abspath(__file__))
@@ -26,7 +30,7 @@ def test_parser():
     assert(response.data is not None)
 
     assert (response.data.file is not None)
-    assert (len(response.data.file.blocks) == 1)
+    assert (len(response.data.file.blocks) == 3)
     assert (len(response.data.file.blocks[0].tags) == 2)
     tag0 = response.data.file.blocks[0].tags[0]
     assert(tag0.kind == 'entity')
