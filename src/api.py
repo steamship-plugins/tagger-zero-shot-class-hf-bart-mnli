@@ -13,57 +13,49 @@ from steamship.plugin.service import PluginRequest
 import logging
 import time
 from typing import List
-import websockets
 import json
 import asyncio
-import uuid
+import aiohttp
 
-async def send(websocket, payloads, hf_token):
-    # You need to login with a first message as headers are not forwarded
-    # for websockets
-    await websocket.send(f"Bearer {hf_token}".encode("utf-8"))
-    for payload in payloads:
-        await websocket.send(json.dumps(payload).encode("utf-8"))
+async def model_call(session, text: str, api_url, headers):
+    input = dict(inputs=text, wait_for_model=True)
+    data = json.dumps(input)
+    valid_response = None
+    while valid_response is None:
+        async with session.post(api_url, headers=headers, data=data) as response:
+            json_response = await response.json()
+            logging.info(json_response)
+            if 'error' in json_response:
+                if not ('is currently loading' in json_response['error']):
+                    raise SteamshipError(message='Unable to query Hugging Face model',
+                                         internalMessage=f'HF returned error: {json_response["error"]}')
+                else:
+                    await asyncio.sleep(1)
+            else:
+                valid_response = json_response
+    return valid_response
 
-async def recv(websocket, last_id):
-    outputs = []
-    while True:
-        data = await websocket.recv()
-        payload = json.loads(data)
-        if payload["type"] == "results":
-            # {"type": "results", "outputs": JSONFormatted results, "id": the id we sent}
-            outputs.append(payload["outputs"])
-            if payload["id"] == last_id:
-                return outputs
-        else:
-            # {"type": "status", "message": "Some information about the queue"}
-            logging.info(f"HF Status message: {payload['message']}")
-            pass
+async def model_calls(texts: List[str], api_url : str, headers):
+    async with aiohttp.ClientSession() as session:
+        tasks = []
+        for text in texts:
+            tasks.append(asyncio.ensure_future(model_call(session, text, api_url, headers=headers)))
 
-async def call_model_async(block_texts: List[str], hf_bearer_token : str, hf_model_path: str, hf_compute_type: str = 'cpu'):
+        results = await asyncio.gather(*tasks)
+        return results
 
-    uri = f"wss://api-inference.huggingface.co/bulk/stream/{hf_compute_type}/{hf_model_path}"
-    async with websockets.connect(uri) as websocket:
-        # inputs and parameters are classic, "id" is a way to track that query
-        payloads = [
-            {
-                "id": str(uuid.uuid4()),
-                "inputs": text
-            }
-            for i, text in enumerate(block_texts)
-        ]
-        last_id = payloads[-1]["id"]
-        future = send(websocket, payloads, hf_bearer_token)
-        future_r = recv(websocket, last_id)
-        _, outputs = await asyncio.gather(future, future_r)
-    return outputs
-
-def call_model(blocks: List[Block], hf_bearer_token : str, hf_model_path: str, hf_compute_type: str = 'cpu'):
-    loop = asyncio.new_event_loop()
-    return loop.run_until_complete(call_model_async([block.text for block in blocks], hf_bearer_token, hf_model_path, hf_compute_type))
+def get_results(blocks: List[Block], hf_model_path: str, hf_bearer_token : str):
+    api_url = f"https://api-inference.huggingface.co/models/{hf_model_path}"
+    headers = {"Authorization": f"Bearer {hf_bearer_token}"}
+    start_time = time.time()
+    results = asyncio.run(model_calls([block.text for block in blocks], api_url, headers))
+    total_time = time.time() - start_time
+    logging.info(
+        f'Completed {len(blocks)} blocks in {total_time} seconds. ({float(len(blocks)) / total_time} bps)')
+    return results
 
 class TaggerPlugin(Tagger, App):
-    """"Example Steamship Tagger Plugin."""
+    """Example Steamship Tagger Plugin."""
 
     model_path = "dslim/bert-large-NER"
 
@@ -78,7 +70,7 @@ class TaggerPlugin(Tagger, App):
         return tags
 
     def tag_blocks(self, blocks : List[Block], hf_bearer_token: str):
-        responses = call_model(blocks, hf_bearer_token=hf_bearer_token, hf_model_path=self.model_path)
+        responses = get_results(blocks, hf_bearer_token=hf_bearer_token, hf_model_path=self.model_path)
         for i, response in enumerate(responses):
             tags = []
             tags.extend(self.make_tags_from_response(response))
@@ -110,18 +102,6 @@ class TaggerPlugin(Tagger, App):
         logging.info(f'Completed {len(request.data.file.blocks)} blocks in {total_time} seconds. ({float(len(request.data.file.blocks))/total_time} bps)')
 
         return Response(data=BlockAndTagPluginOutput(request.data.file))
-
-    @post('tag')
-    def tag(self, **kwargs) -> dict:
-        """App endpoint for our plugin.
-
-        The `run` method above implements the Plugin interface for a Converter.
-        This `convert` method exposes it over an HTTP endpoint as a Steamship App.
-
-        When developing your own plugin, you can almost always leave the below code unchanged.
-        """
-        request = Tagger.parse_request(request=kwargs)
-        return self.run(request)
 
 
 handler = create_handler(TaggerPlugin)
