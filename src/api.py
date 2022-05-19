@@ -17,29 +17,38 @@ import json
 import asyncio
 import aiohttp
 
-async def model_call(session, text: str, api_url, headers):
-    input = dict(inputs=text, wait_for_model=True)
-    data = json.dumps(input)
-    valid_response = None
-    while valid_response is None:
+async def _model_call(session, text: str, api_url, headers) -> list:
+    json_input = dict(inputs=text, wait_for_model=True)
+    data = json.dumps(json_input)
+
+    """
+    Hugging Face returns an error that says that the model is currently loading
+    if it believes you have 'too many' requests simultaneously, so the logic retries in this case, but fails on
+    other errors.
+    """
+    while True:
         async with session.post(api_url, headers=headers, data=data) as response:
-            json_response = await response.json()
-            logging.info(json_response)
-            if 'error' in json_response:
-                if not ('is currently loading' in json_response['error']):
-                    raise SteamshipError(message='Unable to query Hugging Face model',
-                                         internalMessage=f'HF returned error: {json_response["error"]}')
+            if response.status == 200 and response.content_type == 'application/json':
+                    json_response = await response.json()
+                    logging.info(json_response)
+                    return json_response
+            else:
+                text_response = await response.text()
+                logging.info(text_response)
+                if "is currently loading" not in text_response:
+                    raise SteamshipError(
+                        message="Unable to query Hugging Face model",
+                        internal_message=f'HF returned error: {text_response}',
+                    )
                 else:
                     await asyncio.sleep(1)
-            else:
-                valid_response = json_response
-    return valid_response
+
 
 async def model_calls(texts: List[str], api_url : str, headers):
     async with aiohttp.ClientSession() as session:
         tasks = []
         for text in texts:
-            tasks.append(asyncio.ensure_future(model_call(session, text, api_url, headers=headers)))
+            tasks.append(asyncio.ensure_future(_model_call(session, text, api_url, headers=headers)))
 
         results = await asyncio.gather(*tasks)
         return results
