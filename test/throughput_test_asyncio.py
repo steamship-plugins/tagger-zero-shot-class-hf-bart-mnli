@@ -10,50 +10,40 @@ import asyncio
 from typing import List
 
 
-#Touch the model with a one-character test string until it is live
-def ensure_model(api_url, headers):
-    got_response = False
-    start_time = time.time()
-    while not got_response:
-        response = requests.request("POST", api_url, headers=headers, data="t")
-        json_response = json.loads(response.content.decode("utf-8"))
-        logging.info(json_response)
-        if 'error' in json_response:
-            if not ('is currently loading' in json_response['error']):
-                raise SteamshipError(message='Unable to query Hugging Face model',
-                                     internalMessage=f'HF returned error: {json_response["error"]}')
-            else:
-                #sleep(1)
-                pass
-        else:
-            got_response = True
-    warmup_time = time.time() - start_time
-    logging.info(f'Warmup time for model {warmup_time} seconds')
 
 
-async def model_call(session, text: str, api_url, headers):
-    input = dict(inputs=text, wait_for_model=True)
-    data = json.dumps(input)
-    valid_response = None
-    while valid_response is None:
+
+async def _model_call(session, text: str, api_url, headers) -> list:
+    json_input = dict(inputs=text, wait_for_model=True)
+    data = json.dumps(json_input)
+
+    """
+    Hugging Face returns an error that says that the model is currently loading
+    if it believes you have 'too many' requests simultaneously, so the logic retries in this case, but fails on
+    other errors.
+    """
+    while True:
         async with session.post(api_url, headers=headers, data=data) as response:
-            json_response = await response.json()
-            logging.info(json_response)
-            if 'error' in json_response:
-                if not ('is currently loading' in json_response['error']):
-                    raise SteamshipError(message='Unable to query Hugging Face model',
-                                         internalMessage=f'HF returned error: {json_response["error"]}')
+            if response.status == 200 and response.content_type == 'application/json':
+                    json_response = await response.json()
+                    logging.info(json_response)
+                    return json_response
+            else:
+                text_response = await response.text()
+                logging.info(text_response)
+                if "is currently loading" not in text_response:
+                    raise SteamshipError(
+                        message="Unable to query Hugging Face model",
+                        internal_message=f'HF returned error: {text_response}',
+                    )
                 else:
                     await asyncio.sleep(1)
-            else:
-                valid_response = json_response
-    return valid_response
 
 async def model_calls(texts: List[str], api_url : str, headers):
     async with aiohttp.ClientSession() as session:
         tasks = []
         for text in texts:
-            tasks.append(asyncio.ensure_future(model_call(session, text, api_url, headers=headers)))
+            tasks.append(asyncio.ensure_future(_model_call(session, text, api_url, headers=headers)))
 
         results = await asyncio.gather(*tasks)
         return results
@@ -81,7 +71,7 @@ def main():
 
     hf_bearer_token = config.get('hf_api_bearer_token', '')
 
-    request_texts = example_texts[:100]
+    request_texts = example_texts[:1000]
 
     results = get_results(request_texts, 'dslim/bert-large-NER', hf_bearer_token)
 

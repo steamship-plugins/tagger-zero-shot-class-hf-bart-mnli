@@ -9,62 +9,22 @@ from steamship.plugin.tagger import Tagger
 from steamship.plugin.inputs.block_and_tag_plugin_input import BlockAndTagPluginInput
 from steamship.plugin.outputs.block_and_tag_plugin_output import BlockAndTagPluginOutput
 from steamship.plugin.service import PluginRequest
+from steamship.plugin.config import Config
+from steamship.utils.huggingface_helper import get_huggingface_results
 
 import logging
 import time
-from typing import List
-import json
-import asyncio
-import aiohttp
-
-async def _model_call(session, text: str, api_url, headers) -> list:
-    json_input = dict(inputs=text, wait_for_model=True)
-    data = json.dumps(json_input)
-
-    """
-    Hugging Face returns an error that says that the model is currently loading
-    if it believes you have 'too many' requests simultaneously, so the logic retries in this case, but fails on
-    other errors.
-    """
-    while True:
-        async with session.post(api_url, headers=headers, data=data) as response:
-            if response.status == 200 and response.content_type == 'application/json':
-                    json_response = await response.json()
-                    logging.info(json_response)
-                    return json_response
-            else:
-                text_response = await response.text()
-                logging.info(text_response)
-                if "is currently loading" not in text_response:
-                    raise SteamshipError(
-                        message="Unable to query Hugging Face model",
-                        internal_message=f'HF returned error: {text_response}',
-                    )
-                else:
-                    await asyncio.sleep(1)
-
-
-async def model_calls(texts: List[str], api_url : str, headers):
-    async with aiohttp.ClientSession() as session:
-        tasks = []
-        for text in texts:
-            tasks.append(asyncio.ensure_future(_model_call(session, text, api_url, headers=headers)))
-
-        results = await asyncio.gather(*tasks)
-        return results
-
-def get_results(blocks: List[Block], hf_model_path: str, hf_bearer_token : str):
-    api_url = f"https://api-inference.huggingface.co/models/{hf_model_path}"
-    headers = {"Authorization": f"Bearer {hf_bearer_token}"}
-    start_time = time.time()
-    results = asyncio.run(model_calls([block.text for block in blocks], api_url, headers))
-    total_time = time.time() - start_time
-    logging.info(
-        f'Completed {len(blocks)} blocks in {total_time} seconds. ({float(len(blocks)) / total_time} bps)')
-    return results
+from typing import List, Type
 
 class TaggerPlugin(Tagger, App):
     """Example Steamship Tagger Plugin."""
+
+
+    class TaggerPluginConfig(Config):
+        hf_api_bearer_token: str
+
+    def config_cls(self) -> Type[Config]:
+        return self.TaggerPluginConfig
 
     model_path = "dslim/bert-large-NER"
 
@@ -79,7 +39,7 @@ class TaggerPlugin(Tagger, App):
         return tags
 
     def tag_blocks(self, blocks : List[Block], hf_bearer_token: str):
-        responses = get_results(blocks, hf_bearer_token=hf_bearer_token, hf_model_path=self.model_path)
+        responses = get_huggingface_results(blocks, hf_bearer_token=hf_bearer_token, hf_model_path=self.model_path)
         for i, response in enumerate(responses):
             tags = []
             tags.extend(self.make_tags_from_response(response))
@@ -95,7 +55,7 @@ class TaggerPlugin(Tagger, App):
         This plugin applies sentiment analysis via a pre-trained HF model
         to the text of each Block in a file.
         """
-
+        logging.info('Invoking tagger-entity-hf-bert')
         if request is None:
             return Response(error=SteamshipError(message="Missing PluginRequest"))
 
@@ -105,12 +65,9 @@ class TaggerPlugin(Tagger, App):
         if request.data.file is None:
             return Response(error=SteamshipError(message="Missing File"))
 
-        start_time = time.time()
-        self.tag_blocks(request.data.file.blocks, self.config.get('hf_api_bearer_token', ''))
-        total_time = time.time() - start_time
-        logging.info(f'Completed {len(request.data.file.blocks)} blocks in {total_time} seconds. ({float(len(request.data.file.blocks))/total_time} bps)')
+        self.tag_blocks(request.data.file.blocks, self.config.hf_api_bearer_token)
 
-        return Response(data=BlockAndTagPluginOutput(request.data.file))
+        return Response(data=BlockAndTagPluginOutput(file=request.data.file))
 
 
 handler = create_handler(TaggerPlugin)
