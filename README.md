@@ -5,6 +5,8 @@ This plugin wraps the `facebook/bart-large-mnli` zero-shot classification model 
 
 When you instantiate this plugin, you must provide it `labels` that will be used to label the data, and a `tag_kind` that will be used in resulting tags.
 
+Set `multi_label=True` if classes can overlap.
+
 For example, if you wished to classify sentences about cats versus those about dogs, you could use:
 
 ```

@@ -23,6 +23,12 @@
     "tag_kind": {
       "type": "string",
       "description": "A value for 'kind' in the Tag objects that will be returned"
+    },
+    "multi_label": {
+      "type": "boolean",
+      "description": "Whether classification labels can overlap.",
+      "default": false
     }
-  }
+  },
+  "name": "tagger-zero-shot-class-hf-bart-mnli"
 }

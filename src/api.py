@@ -24,6 +24,7 @@ class TaggerPlugin(Tagger, App):
         hf_api_bearer_token: str
         labels: str
         tag_kind: str
+        multi_label: bool
 
     def config_cls(self) -> Type[Config]:
         return self.TaggerPluginConfig
@@ -42,7 +43,7 @@ class TaggerPlugin(Tagger, App):
         return tags
 
     def tag_blocks(self, blocks : List[Block], hf_bearer_token: str):
-        additional_parameters = dict(candidate_labels=self.config.labels.split(','))
+        additional_parameters = dict(candidate_labels=self.config.labels.split(','), multi_label=self.config.multi_label)
         responses = get_huggingface_results(blocks, hf_bearer_token=hf_bearer_token, hf_model_path=self.model_path, additional_params=additional_parameters)
         for i, response in enumerate(responses):
             tags = []
@@ -59,7 +60,7 @@ class TaggerPlugin(Tagger, App):
         This plugin applies sentiment analysis via a pre-trained HF model
         to the text of each Block in a file.
         """
-        logging.info('Invoking tagger-entity-hf-bert')
+        logging.info('Invoking tagger-zero-shot-class-hf-bart-mnli')
         if request is None:
             return Response(error=SteamshipError(message="Missing PluginRequest"))
 
