@@ -22,28 +22,32 @@ class TaggerPlugin(Tagger, App):
 
     class TaggerPluginConfig(Config):
         hf_api_bearer_token: str
+        labels: str
+        tag_kind: str
 
     def config_cls(self) -> Type[Config]:
         return self.TaggerPluginConfig
 
-    model_path = "dslim/bert-large-NER"
+    model_path = "facebook/bart-large-mnli" #"cardiffnlp/twitter-roberta-base-sentiment-latest"
 
-    def make_tags_from_response(self, response) -> List[Tag.CreateRequest]:
+
+    def make_tags_from_response(self, response, block_len) -> List[Tag.CreateRequest]:
         tags = []
-        for entity in response:
-            tags.append(Tag.CreateRequest(kind='entity',
-                                          name=entity['entity_group'],
-                                          startIdx=entity['start'],
-                                          endIdx=entity['end'],
-                                          value={'score': entity['score']}))
+        for i, label in enumerate(response['labels']):
+            tags.append(Tag.CreateRequest(kind=self.config.tag_kind,
+                                          name= label,
+                                          startIdx=0,
+                                          endIdx=block_len,
+                                          value={'score': response['scores'][i]}))
         return tags
 
     def tag_blocks(self, blocks : List[Block], hf_bearer_token: str):
-        responses = get_huggingface_results(blocks, hf_bearer_token=hf_bearer_token, hf_model_path=self.model_path)
+        additional_parameters = dict(candidate_labels=self.config.labels.split(','))
+        responses = get_huggingface_results(blocks, hf_bearer_token=hf_bearer_token, hf_model_path=self.model_path, additional_params=additional_parameters)
         for i, response in enumerate(responses):
             tags = []
-            tags.extend(self.make_tags_from_response(response))
             block = blocks[i]
+            tags.extend(self.make_tags_from_response(response, len(block.text)))
             if block.tags:
                 block.tags.extend(tags)
             else:

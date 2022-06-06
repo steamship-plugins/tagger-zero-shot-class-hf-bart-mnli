@@ -1,7 +1,6 @@
 {
   "type": "plugin",
-  "name": "tagger-entity-hf-bert",
-  "handle": "tagger-entity-hf-bert",
+  "handle": "tagger-zero-shot-class-hf-bart-mnli",
   "version": "0.0.1",
   "description": "",
   "author": "",
@@ -10,12 +9,20 @@
   "plugin": {
     "type": "tagger",
     "path": "/tag",
-    "transport": "jsonOverHttp",
-    "configTemplate": {
-      "hf_api_bearer_token": {
-        "type": "string",
-        "description": "Your bearer token from the Hugging Face API"
-      }
+    "transport": "jsonOverHttp"
+  },
+  "configTemplate": {
+    "hf_api_bearer_token": {
+      "type": "string",
+      "description": "Your bearer token from the Hugging Face API"
+    },
+    "labels": {
+      "type": "string",
+      "description": "A comma-separated list of labels that will be applied"
+    },
+    "tag_kind": {
+      "type": "string",
+      "description": "A value for 'kind' in the Tag objects that will be returned"
     }
   }
 }

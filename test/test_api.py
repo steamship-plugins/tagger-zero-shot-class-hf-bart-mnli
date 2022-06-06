@@ -1,6 +1,6 @@
 from steamship.plugin.inputs.block_and_tag_plugin_input import BlockAndTagPluginInput
 from steamship.plugin.service import PluginRequest
-from steamship import File, Block
+from steamship import File, Block, Tag
 from src.api import TaggerPlugin
 import os
 import json
@@ -10,10 +10,16 @@ __license__ = "MIT"
 
 def _get_test_file() -> File:
     return File(blocks=[
-        Block(text='My name is Dave and I live near Baltimore'),
-        Block(text='My name is Ted and I live in Washington, DC'),
-        Block(text='My name is Enias and I live in Brussels'),
+        Block(text='I have cats for pets.'),
+        Block(text='I have dogs for pets.'),
+        Block(text='I want a panda for a pet, despite the fact that this is illegal.'),
     ])
+
+def _get_tag_by_name(tags: [Tag], name: str) -> Tag:
+    for tag in tags:
+        if tag.name == name:
+            return tag
+    return None
 
 def test_parser():
     folder = os.path.dirname(os.path.abspath(__file__))
@@ -31,16 +37,14 @@ def test_parser():
 
     assert (response.data.file is not None)
     assert (len(response.data.file.blocks) == 3)
-    assert (len(response.data.file.blocks[0].tags) == 2)
-    tag0 = response.data.file.blocks[0].tags[0]
-    assert(tag0.kind == 'entity')
-    assert(tag0.name == 'PER')
-    assert(tag0.startIdx == 11)
-    assert(tag0.endIdx == 15)
-    assert(tag0.value['score'] > .9)
-    tag1 = response.data.file.blocks[0].tags[1]
-    assert (tag1.kind == 'entity')
-    assert (tag1.name == 'LOC')
-    assert (tag1.startIdx == 32)
-    assert (tag1.endIdx == 41)
-    assert (tag1.value['score'] > .9)
+    assert (len(response.data.file.blocks[0].tags) == 3)
+    cat_tag = _get_tag_by_name(response.data.file.blocks[0].tags, "cats")
+    assert cat_tag.kind == 'my-animal-classification'
+    assert(cat_tag.value['score'] > .9)
+    dog_tag = _get_tag_by_name(response.data.file.blocks[1].tags, "dogs")
+    assert dog_tag.kind == 'my-animal-classification'
+    assert (dog_tag.value['score'] > .9)
+    panda_tag = _get_tag_by_name(response.data.file.blocks[2].tags, "pandas")
+    assert panda_tag.kind == 'my-animal-classification'
+    assert (panda_tag.value['score'] > .9)
+

@@ -1,3 +1,5 @@
 {
-    "hf_api_bearer_token":""
+    "hf_api_bearer_token":"",
+    "labels":"cats,dogs,pandas",
+    "tag_kind":"my-animal-classification"
 }
