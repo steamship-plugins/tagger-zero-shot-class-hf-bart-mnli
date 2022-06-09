@@ -50,7 +50,7 @@ class TaggerPlugin(Tagger, App):
         return results
 
     def tag_blocks(self, blocks : List[Block], hf_bearer_token: str):
-        #Maximum of 10 labels per call to the model, but in multiclass, can just make multiple calls to the model
+        #Maximum of 10 labels per call to the model, but in multiclass, we can just make multiple calls to the model
         # with the same results.
         if len(self.config.labels.split(',')) > 10 and not self.config.multi_label:
             raise SteamshipError('This plugin supports a maximum of 10 labels in single-class classification.')
