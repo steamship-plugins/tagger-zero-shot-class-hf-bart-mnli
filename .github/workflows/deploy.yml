@@ -22,12 +22,14 @@ jobs:
         if: ${{ (!(steps.extract_branch.outputs.branch == 'staging')) }}
         uses: steamship-core/deploy-to-steamship@main
         with:
+          test_before_deployment: "false" # Yes, this must be a string.
           steamship_key: ${{ secrets.STEAMSHIP_API_KEY }}
           steamship_slack_notification_webhook: ${{ secrets.STEAMSHIP_SLACK_DEPLOYMENT_WEBHOOK }}
       - name: Deploy to Steamship [Staging]
         if: ${{ (steps.extract_branch.outputs.branch == 'staging') }}
         uses: steamship-core/deploy-to-steamship@main
         with:
+          test_before_deployment: "false" # Yes, this must be a string.
           steamship_key: ${{ secrets.STEAMSHIP_API_KEY_STAGING }}
           steamship_api_base: ${{ secrets.STEAMSHIP_API_BASE_STAGING }}
           steamship_slack_notification_webhook: ${{ secrets.STEAMSHIP_SLACK_DEPLOYMENT_WEBHOOK }}
