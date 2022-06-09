@@ -48,3 +48,22 @@ def test_parser():
     assert panda_tag.kind == 'my-animal-classification'
     assert (panda_tag.value['score'] > .9)
 
+
+def test_many_labels():
+    folder = os.path.dirname(os.path.abspath(__file__))
+    with open(os.path.join(folder, '..', 'test_data', 'test-config.json'), 'r') as config_file:
+        config = json.load(config_file)
+
+    config['multi_label'] = True
+    config['labels'] = 'one,two,three,four,five,six,seven,eight,nine,ten,eleven'
+    tagger = TaggerPlugin(config=config)
+    test_file = _get_test_file()
+    request = PluginRequest(data=BlockAndTagPluginInput(
+        file=test_file
+    ))
+    response = tagger.run(request)
+
+    assert (response.data is not None)
+    assert (len(response.data.file.blocks) == 3)
+    for block in response.data.file.blocks:
+        assert (len(block.tags) == 11)

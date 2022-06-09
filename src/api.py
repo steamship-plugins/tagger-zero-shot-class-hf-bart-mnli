@@ -42,17 +42,29 @@ class TaggerPlugin(Tagger, App):
                                           value={'score': response['scores'][i]}))
         return tags
 
+    def split_labelsets(self):
+        all_labels = self.config.labels.split(',')
+        results = []
+        for i in range(0, len(all_labels), 10):
+            results.append(all_labels[i:i + 10])
+        return results
+
     def tag_blocks(self, blocks : List[Block], hf_bearer_token: str):
-        additional_parameters = dict(candidate_labels=self.config.labels.split(','), multi_label=self.config.multi_label)
-        responses = get_huggingface_results(blocks, hf_bearer_token=hf_bearer_token, hf_model_path=self.model_path, additional_params=additional_parameters)
-        for i, response in enumerate(responses):
-            tags = []
-            block = blocks[i]
-            tags.extend(self.make_tags_from_response(response, len(block.text)))
-            if block.tags:
-                block.tags.extend(tags)
-            else:
-                block.tags = tags
+        #Maximum of 10 labels per call to the model, but in multiclass, can just make multiple calls to the model
+        # with the same results.
+        if len(self.config.labels.split(',')) > 10 and not self.config.multi_label:
+            raise SteamshipError('This plugin supports a maximum of 10 labels in single-class classification.')
+        for labelset in self.split_labelsets():
+            additional_parameters = dict(candidate_labels=labelset, multi_label=self.config.multi_label)
+            responses = get_huggingface_results(blocks, hf_bearer_token=hf_bearer_token, hf_model_path=self.model_path, additional_params=additional_parameters, timeout_seconds=60)
+            for i, response in enumerate(responses):
+                tags = []
+                block = blocks[i]
+                tags.extend(self.make_tags_from_response(response, len(block.text)))
+                if block.tags:
+                    block.tags.extend(tags)
+                else:
+                    block.tags = tags
 
     def run(self, request: PluginRequest[BlockAndTagPluginInput]) -> Response[BlockAndTagPluginOutput]:
         """Every plugin implements a `run` function.
