@@ -25,6 +25,7 @@ class TaggerPlugin(Tagger, App):
         labels: str
         tag_kind: str
         multi_label: bool
+        use_gpu: bool
 
     def config_cls(self) -> Type[Config]:
         return self.TaggerPluginConfig
@@ -56,7 +57,7 @@ class TaggerPlugin(Tagger, App):
             raise SteamshipError('This plugin supports a maximum of 10 labels in single-class classification.')
         for labelset in self.split_labelsets():
             additional_parameters = dict(candidate_labels=labelset, multi_label=self.config.multi_label)
-            responses = get_huggingface_results(blocks, hf_bearer_token=hf_bearer_token, hf_model_path=self.model_path, additional_params=additional_parameters, timeout_seconds=60)
+            responses = get_huggingface_results(blocks, hf_bearer_token=hf_bearer_token, hf_model_path=self.model_path, additional_params=additional_parameters, timeout_seconds=60, use_gpu=self.config.use_gpu)
             for i, response in enumerate(responses):
                 tags = []
                 block = blocks[i]

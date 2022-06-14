@@ -1,7 +1,7 @@
 {
   "type": "plugin",
   "handle": "tagger-zero-shot-class-hf-bart-mnli",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "",
   "author": "",
   "entrypoint": "src.api.handler",
@@ -27,6 +27,11 @@
     "multi_label": {
       "type": "boolean",
       "description": "Whether classification labels can overlap.",
+      "default": false
+    },
+    "use_gpu": {
+      "type": "boolean",
+      "description": "Process HF requests on GPU (at greater speed and cost).",
       "default": false
     }
   },
