@@ -22,3 +22,14 @@ The plugin will classify the text in every `Block` of the `File` that it receive
 
 To use this plugin, you must also provide a `hf_api_bearer_token` which will be used to invoke the model.
 
+## Developing
+
+Development instructions are located in [DEVELOPING.md](DEVELOPING.md)
+
+## Testing
+
+Testing instructions are located in [TESTING.md](TESTING.md)
+
+## Deploying
+
+Deployment instructions are located in [DEPLOYING.md](DEPLOYING.md)
