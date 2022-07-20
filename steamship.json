@@ -1,7 +1,8 @@
 {
   "type": "plugin",
-  "handle": "tagger-zero-shot-class-hf-bart-mnli",
-  "version": "0.0.2",
+  "handle": "tagger-zero-shot",
+  "name": "tagger-zero-shot",
+  "version": "0.0.1",
   "description": "",
   "author": "",
   "entrypoint": "src.api.handler",
@@ -15,6 +16,11 @@
     "hf_api_bearer_token": {
       "type": "string",
       "description": "Your bearer token from the Hugging Face API"
+    },
+    "hf_model_path": {
+      "type": "string",
+      "description": "Your bearer token from the Hugging Face API",
+      "default": "facebook/bart-large-mnli"
     },
     "labels": {
       "type": "string",
@@ -34,6 +40,5 @@
       "description": "Process HF requests on GPU (at greater speed and cost).",
       "default": false
     }
-  },
-  "name": "tagger-zero-shot-class-hf-bart-mnli"
+  }
 }

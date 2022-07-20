@@ -2,10 +2,11 @@
 
 ## Manual Deployments
 
-Deploy this project to Steamship by running:
+Deploy your app or plugin to Steamship by running, respectively:
 
 ```bash
-ship deploy
+ship app:deploy
+ship plugin:deploy
 ```
 
 from the root directory of this project.
