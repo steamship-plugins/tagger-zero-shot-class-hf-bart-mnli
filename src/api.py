@@ -22,7 +22,7 @@ BATCH_SIZE: int = 10
 class ZeroShotTaggerPlugin(Tagger, App):
     """Example Steamship Tagger Plugin."""
 
-    class TaggerPluginConfig(Config):
+    class ZeroShotTaggerPluginConfig(Config):
         hf_api_bearer_token: str
         labels: str
         tag_kind: str
@@ -31,17 +31,20 @@ class ZeroShotTaggerPlugin(Tagger, App):
         hf_model_path: str = "facebook/bart-large-mnli"
 
     def config_cls(self) -> Type[Config]:
-        return self.TaggerPluginConfig
+        return self.ZeroShotTaggerPluginConfig
 
     def _make_tags_from_response(self, response: dict) -> List[Tag.CreateRequest]:
-        return [
-            Tag.CreateRequest(
-                kind=self.config.tag_kind,
-                name=label,
-                value={"score": score},
-            )
-            for label, score in zip(response["labels"], response["scores"])
-        ]
+        return sorted(
+            [
+                Tag.CreateRequest(
+                    kind=self.config.tag_kind,
+                    name=label,
+                    value={"score": score},
+                )
+                for label, score in zip(response["labels"], response["scores"])
+            ],
+            key=lambda x: -x.value["score"],
+        )
 
     @staticmethod
     def _batch_labels(labels: List[str]):
@@ -70,7 +73,11 @@ class ZeroShotTaggerPlugin(Tagger, App):
                 use_gpu=self.config.use_gpu,
             )
             for block, response in zip_longest(blocks, responses):
-                block.tags.extend(self._make_tags_from_response(response))
+                tags = self._make_tags_from_response(response)
+                if self.config.multi_label:
+                    block.tags.extend(tags)
+                else:
+                    block.tags.append(tags[0])
 
     def run(
         self, request: PluginRequest[BlockAndTagPluginInput]
