@@ -23,6 +23,8 @@ class ZeroShotTaggerPlugin(Tagger, App):
     """Example Steamship Tagger Plugin."""
 
     class ZeroShotTaggerPluginConfig(Config):
+        """Config object containing required configuration parameters to initialize a ZeroShotTaggerPlugin."""
+
         hf_api_bearer_token: str
         labels: str
         tag_kind: str
@@ -31,6 +33,7 @@ class ZeroShotTaggerPlugin(Tagger, App):
         hf_model_path: str = "facebook/bart-large-mnli"
 
     def config_cls(self) -> Type[Config]:
+        """Return the Configuration class."""
         return self.ZeroShotTaggerPluginConfig
 
     def _make_tags_from_response(self, response: dict) -> List[Tag.CreateRequest]:
@@ -84,8 +87,7 @@ class ZeroShotTaggerPlugin(Tagger, App):
     ) -> Response[BlockAndTagPluginOutput]:
         """Every plugin implements a `run` function.
 
-        This plugin applies sentiment analysis via a pre-trained HF model
-        to the text of each Block in a file.
+        This plugin applies tags to file blocks via a pre-trained zero-shot classification model hosted on HuggingFace
         """
         logging.info("Invoking tagger-zero-shot-class-hf-bart-mnli")
         if request is None:

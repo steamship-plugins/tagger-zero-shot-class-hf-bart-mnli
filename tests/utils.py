@@ -1,3 +1,4 @@
+"""Collection of helper functions to support testing."""
 import json
 from typing import List
 
@@ -7,10 +8,12 @@ from tests import TEST_DATA
 
 
 def load_config():
+    """Load config file from test data."""
     return json.load((TEST_DATA / "config.json").open())
 
 
-def get_test_file() -> File:
+def generate_test_file() -> File:
+    """Generate a dummy test File."""
     return File(
         blocks=[
             Block(text="I have cats for pets."),
@@ -21,6 +24,7 @@ def get_test_file() -> File:
 
 
 def get_tag_by_name(tags: List[Tag], name: str) -> Tag:
+    """Get based on its name property."""
     for tag in tags:
         if tag.name == name:
             return tag

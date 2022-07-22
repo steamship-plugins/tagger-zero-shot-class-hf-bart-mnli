@@ -1,18 +1,20 @@
+"""Test tagger-zero=shot via unit tests."""
 import pytest
 from steamship.plugin.inputs.block_and_tag_plugin_input import BlockAndTagPluginInput
 from steamship.plugin.service import PluginRequest
 
 from src.api import ZeroShotTaggerPlugin
-from tests.utils import get_tag_by_name, get_test_file, load_config
+from tests.utils import generate_test_file, get_tag_by_name, load_config
 
 
 @pytest.mark.parametrize("multi_label", [True, False])
-def test_parser(multi_label: bool):
+def test_simple(multi_label: bool):
+    """Test the ZeroShotTaggerPlugin with a simple configuration."""
     config = load_config()
     config["multi_label"] = multi_label
 
     tagger = ZeroShotTaggerPlugin(config=config)
-    test_file = get_test_file()
+    test_file = generate_test_file()
     request = PluginRequest(data=BlockAndTagPluginInput(file=test_file))
     response = tagger.run(request)
 
@@ -32,12 +34,13 @@ def test_parser(multi_label: bool):
 
 
 def test_many_labels():
+    """Test the ZeroShotTaggerPlugin in multi-label mode with 10+ possible labels."""
     config = load_config()
     config["multi_label"] = True
     config["labels"] = "one,two,three,four,five,six,seven,eight,nine,ten,eleven"
 
     tagger = ZeroShotTaggerPlugin(config=config)
-    test_file = get_test_file()
+    test_file = generate_test_file()
     request = PluginRequest(data=BlockAndTagPluginInput(file=test_file))
     response = tagger.run(request)
 
