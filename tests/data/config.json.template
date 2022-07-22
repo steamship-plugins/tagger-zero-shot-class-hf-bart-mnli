@@ -1,5 +1,6 @@
 {
     "hf_api_bearer_token":"",
+    "hf_model_path": "facebook/bart-large-mnli",
     "labels":"cats,dogs,pandas",
     "tag_kind":"my-animal-classification",
     "multi_label":false,

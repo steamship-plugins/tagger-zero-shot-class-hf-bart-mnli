@@ -36,11 +36,10 @@ All the code for this plugin is located in the `src/api.py` file.
 
 Steamship plugins conform to standard base classes -- you just have to implement the main function that represents their contract.
 
-This project is a **Tagger** plugin. It's contract is to accept a Steamship File object and return that same object adorned with Tags.
-In Python, that contract looks like:
+This project is a **Blockifier** plugin. It's contract is to take raw bytes and produce Steamship Blocks -- our internal format for describing text and tags over that text. In Python, that contract looks like:
 
 ```python
-    def run(self, request: PluginRequest[BlockAndTagPluginInput]) -> Response[BlockAndTagPluginOutput]:
+    def run(self, request: PluginRequest[RawDataPluginInput]) -> Union[BlockAndTagPluginOutput]:
         pass
 ```
 

@@ -1,9 +1,10 @@
 {
   "type": "plugin",
-  "handle": "tagger-zero-shot-class-hf-bart-mnli",
-  "version": "0.0.2",
-  "description": "",
-  "author": "",
+  "handle": "tagger-hf-zero-shot",
+  "name": "tagger-hf-zero-shot",
+  "version": "0.0.1",
+  "description": "Steamship tagger to label text using a huggingface zero shot classifier",
+  "author": "Steamship Inc.",
   "entrypoint": "src.api.handler",
   "public": true,
   "plugin": {
@@ -14,15 +15,20 @@
   "configTemplate": {
     "hf_api_bearer_token": {
       "type": "string",
-      "description": "Your bearer token from the Hugging Face API"
+      "description": "Your bearer token from the Hugging Face API."
+    },
+    "hf_model_path": {
+      "type": "string",
+      "description": "Your bearer token from the Hugging Face API.",
+      "default": "facebook/bart-large-mnli"
     },
     "labels": {
       "type": "string",
-      "description": "A comma-separated list of labels that will be applied"
+      "description": "A comma-separated list of labels that will be applied."
     },
     "tag_kind": {
       "type": "string",
-      "description": "A value for 'kind' in the Tag objects that will be returned"
+      "description": "A value for 'kind' in the Tag objects that will be returned."
     },
     "multi_label": {
       "type": "boolean",
@@ -34,6 +40,5 @@
       "description": "Process HF requests on GPU (at greater speed and cost).",
       "default": false
     }
-  },
-  "name": "tagger-zero-shot-class-hf-bart-mnli"
+  }
 }
